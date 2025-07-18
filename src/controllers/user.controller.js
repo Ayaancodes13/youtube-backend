@@ -4,6 +4,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { User } from "../models/user.model.js";
 import {uploadOnCloudinary} from '../utils/cloudinary.js'
 import jwt from 'jsonwebtoken'
+import { deleteFromCloud } from "../utils/deleteFromCloud.js";
 
 const generateAccessAndRefreshTokens = async(userId)=>{
     try {
@@ -244,6 +245,9 @@ const updateAccountDetails = asyncHandler(async(req,res)=>{
 })
 
 const updateAvatarImage = asyncHandler(async(req,res)=>{
+
+    const oldAvatar = await User.findById(req.user?._id).select("avatar")
+
     const avatarImagePath = req.file?.path
 
     if(!avatarImagePath){
@@ -257,13 +261,16 @@ const updateAvatarImage = asyncHandler(async(req,res)=>{
     }
 
     const user = await User.findByIdAndUpdate(req.user?._id,{
-        set:{
+        $set:{
             avatar: avatar.url
         }
     },{
         new: true
     }).select(" -password")
-
+    if(oldAvatar){
+        await deleteFromCloud(oldAvatar)
+    }
+    
     return res
     .status(200)
     .json(
@@ -272,6 +279,9 @@ const updateAvatarImage = asyncHandler(async(req,res)=>{
 })
 
 const updateCoverImage = asyncHandler(async(req,res)=>{
+
+    const oldCoverImage = await User.findById(req.user?._id).select("coverimage")
+    
     const coverImagePath = req.file?.path
 
     if(!coverImagePath){
@@ -285,12 +295,16 @@ const updateCoverImage = asyncHandler(async(req,res)=>{
     }
 
     const user = await User.findByIdAndUpdate(req.user?._id,{
-        set:{
+        $set:{
             coverimage: coverImage.url
         }
     },{
         new: true
     }).select(" -password")
+
+    if(oldCoverImage){
+        await deleteFromCloud(oldCoverImage)
+    }
 
     return res
     .status(200)
